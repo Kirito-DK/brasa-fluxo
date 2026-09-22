@@ -2,6 +2,7 @@
 // @ts-nocheck
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as PainelImport } from './routes/_authenticated/painel'
 import { Route as ClientesImport } from './routes/_authenticated/clientes'
@@ -15,6 +16,7 @@ import { Route as CalendarioImport } from './routes/_authenticated/calendario'
 import { Route as ConfigImport } from './routes/_authenticated/configuracoes'
 import { Route as BuscaImport } from './routes/busca'
 const IndexRoute=IndexRouteImport.update({id:'/',path:'/',getParentRoute:()=>rootRouteImport} as any)
+const AuthRoute=AuthRouteImport.update({id:'/auth',path:'/auth',getParentRoute:()=>rootRouteImport} as any)
 const AuthenticatedRoute=AuthenticatedRouteRouteImport.update({id:'/_authenticated',getParentRoute:()=>rootRouteImport} as any)
 const PainelRoute=PainelImport.update({id:'/_authenticated/painel',path:'/painel',getParentRoute:()=>AuthenticatedRoute} as any)
 const ClientesRoute=ClientesImport.update({id:'/_authenticated/clientes',path:'/clientes',getParentRoute:()=>AuthenticatedRoute} as any)
@@ -29,4 +31,4 @@ const ConfigRoute=ConfigImport.update({id:'/_authenticated/configuracoes',path:'
 const BuscaRoute=BuscaImport.update({id:'/busca',path:'/busca',getParentRoute:()=>rootRouteImport} as any)
 const children={PainelRoute,ClientesRoute,EstoqueRoute,OrcamentosRoute,PedidosRoute,ProducaoRoute,ProdutosRoute,FinanceiroRoute,CalendarioRoute,ConfigRoute}
 const AuthenticatedRouteWithChildren=AuthenticatedRoute._addFileChildren(children)
-export const routeTree=rootRouteImport._addFileChildren({IndexRoute,AuthenticatedRoute:AuthenticatedRouteWithChildren,BuscaRoute})._addFileTypes<any>()
+export const routeTree=rootRouteImport._addFileChildren({IndexRoute,AuthRoute,AuthenticatedRoute:AuthenticatedRouteWithChildren,BuscaRoute})._addFileTypes<any>()
