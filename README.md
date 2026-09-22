@@ -39,3 +39,10 @@ As variáveis necessárias são:
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 
 No Lovable Cloud, a conexão do Supabase normalmente já fornece essas variáveis.
+
+## Atualização 2026-09-22
+- Produtos agora persistem `preco_venda` no Supabase.
+- Financeiro separa recebimentos por mês e mostra data, cliente, pedido, forma e valor.
+- Pedidos cancelados ficam no histórico, mas seus pagamentos não entram nos totais financeiros.
+- Para bancos já existentes, aplique a migration `supabase/migrations/20260922140000_preco_venda_financeiro.sql` ou execute no SQL Editor:
+  `ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS preco_venda numeric(12,2) NOT NULL DEFAULT 0;`

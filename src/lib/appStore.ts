@@ -66,7 +66,7 @@ async function loadFromSupabase(){
   const prods = produtos as any[];
   const uiProdutos:Produto[] = prods.map(p=>{
     const m=matById.get(p.id);
-    return {id:p.id,nome:p.nome,categoria:p.categoria,unidade:m?.unidade??"un",custo:Number(m?.custo_unitario??0),preco:Number((p as any).preco??0),estoque:Number(m?.quantidade_atual??0),estoqueMin:Number(m?.estoque_minimo??0),ativo:Boolean(p.ativo)};
+    return {id:p.id,nome:p.nome,categoria:p.categoria,unidade:m?.unidade??"un",custo:Number(m?.custo_unitario??0),preco:Number((p as any).preco_venda??0),estoque:Number(m?.quantidade_atual??0),estoqueMin:Number(m?.estoque_minimo??0),ativo:Boolean(p.ativo)};
   });
 
   const orcItemBy = new Map<string,any[]>();
@@ -120,7 +120,7 @@ async function sync(){
   const cliDel=[...ids(old.clientes)].filter(id=>!ids(cur.clientes).has(id));
   if(cliDel.length) await must("exclusão de clientes",supabase.from("clientes").delete().in("id",cliDel));
 
-  const prodRows=cur.produtos.map(p=>({id:p.id,nome:p.nome,categoria:p.categoria,ativo:p.ativo}));
+  const prodRows=cur.produtos.map(p=>({id:p.id,nome:p.nome,categoria:p.categoria,preco_venda:p.preco,ativo:p.ativo}));
   const matRows=cur.produtos.map(p=>({id:p.id,nome:p.nome,categoria:p.categoria,unidade:p.unidade,quantidade_atual:p.estoque,estoque_minimo:p.estoqueMin,custo_unitario:p.custo}));
   await must("produtos",supabase.from("produtos").upsert(prodRows,{onConflict:"id"}));
   await must("materiais",supabase.from("materiais").upsert(matRows,{onConflict:"id"}));
