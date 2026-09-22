@@ -9,9 +9,10 @@ export type PedidoItem = OrcamentoItem;
 export type Pedido = { id:string; numero:number; clienteId:string; data:string; entrega:string; status:string; itens:PedidoItem[]; total:number; pago:number; observacao:string; checklist:string[]; entregueEm?:string };
 export type Movimento = { id:string; produtoId:string; tipo:"entrada"|"saida"; quantidade:number; data:string; observacao:string };
 export type Pagamento = { id:string; pedidoId:string; valor:number; data:string; forma:string; observacao:string };
-export type AppData = { clientes:Cliente[]; produtos:Produto[]; orcamentos:Orcamento[]; pedidos:Pedido[]; movimentos:Movimento[]; pagamentos:Pagamento[]; configuracoes:{nome:string; telefone:string; whatsapp:string; email:string} };
+export type Historico = { id:string; pedidoId:string|null; orcamentoId:string|null; evento:string; detalhe:string; criadoEm:string };
+export type AppData = { clientes:Cliente[]; produtos:Produto[]; orcamentos:Orcamento[]; pedidos:Pedido[]; movimentos:Movimento[]; pagamentos:Pagamento[]; historico:Historico[]; configuracoes:{nome:string; telefone:string; whatsapp:string; email:string} };
 
-const empty:AppData={clientes:[],produtos:[],orcamentos:[],pedidos:[],movimentos:[],pagamentos:[],configuracoes:{nome:"Meu Ateliê",telefone:"",whatsapp:"",email:""}};
+const empty:AppData={clientes:[],produtos:[],orcamentos:[],pedidos:[],movimentos:[],pagamentos:[],historico:[],configuracoes:{nome:"Planejamento Lumme",telefone:"",whatsapp:"",email:""}};
 let cache:AppData = structuredClone(empty);
 let persisted:AppData = structuredClone(empty);
 let loaded = false;
@@ -47,7 +48,7 @@ async function readTable<T>(label:string, query: PromiseLike<{data:T[]|null; err
 
 async function loadFromSupabase(){
   await requireSession();
-  const [clientes,produtos,materiais,orcamentos,oi,pedidos,pi,pagamentos,movimentos,check,config] = await Promise.all([
+  const [clientes,produtos,materiais,orcamentos,oi,pedidos,pi,pagamentos,movimentos,check,historico,config] = await Promise.all([
     readTable("clientes",supabase.from("clientes").select("*").order("criado_em",{ascending:false})),
     readTable("produtos",supabase.from("produtos").select("*").order("criado_em",{ascending:false})),
     readTable("materiais",supabase.from("materiais").select("*").order("criado_em",{ascending:false})),
@@ -58,6 +59,7 @@ async function loadFromSupabase(){
     readTable("pagamentos",supabase.from("pagamentos").select("*")),
     readTable("movimentações de estoque",supabase.from("movimentacoes_estoque").select("*")),
     readTable("checklist",supabase.from("pedido_checklist").select("*").order("ordem")),
+    readTable("histórico",supabase.from("historico_pedidos").select("*" ).order("criado_em",{ascending:false})),
     readTable("configurações",supabase.from("configuracoes").select("*").order("criado_em",{ascending:false}).limit(1)),
   ]);
 
@@ -85,6 +87,7 @@ async function loadFromSupabase(){
     pedidos:(pedidos as any[]).map(p=>({id:p.id,numero:p.numero,clienteId:p.cliente_id??"",data:p.data,entrega:p.data_entrega??"",status:p.status,itens:(pedidoItemBy.get(p.id)??[]).map((i:any)=>({id:i.id,produtoId:i.produto_id??"",descricao:i.descricao,quantidade:Number(i.quantidade),valor:Number(i.custo_unitario??0)})),total:Number(p.valor_total??0),pago:paysBy.get(p.id)??0,observacao:p.observacoes??"",checklist:checkBy.get(p.id)??[],entregueEm:p.entregue_em??undefined})),
     movimentos:(movimentos as any[]).map((m:any)=>({id:m.id,produtoId:m.material_id,tipo:m.tipo==="entrada"?"entrada":"saida",quantidade:Number(m.quantidade),data:m.criado_em,observacao:m.observacao??""})),
     pagamentos:(pagamentos as any[]).map((p:any)=>({id:p.id,pedidoId:p.pedido_id,valor:Number(p.valor),data:p.data,forma:p.forma??"",observacao:p.observacao??""})),
+    historico:(historico as any[]).map((h:any)=>({id:h.id,pedidoId:h.pedido_id??null,orcamentoId:h.orcamento_id??null,evento:h.evento,detalhe:h.detalhe??"",criadoEm:h.criado_em})),
     configuracoes:{nome:(config as any[])[0]?.nome_empresa??"Planejamento Lumme",telefone:"",whatsapp:"",email:""}
   };
   persisted=clone(cache); loaded=true; lastError=null; emit();
@@ -136,17 +139,21 @@ async function sync(){
   if(oiDel.length) await must("exclusão de itens de orçamento",supabase.from("orcamento_itens").delete().in("id",oiDel));
   const oiRows=cur.orcamentos.flatMap(o=>o.itens.map(i=>({id:i.id,orcamento_id:o.id,produto_id:i.produtoId||null,descricao:i.descricao,categoria:"produto",quantidade:i.quantidade,custo_unitario:i.valor,custo_total:i.quantidade*i.valor}))); 
   await must("itens de orçamento",supabase.from("orcamento_itens").upsert(oiRows,{onConflict:"id"}));
-  const orcDel=[...ids(old.orcamentos)].filter(id=>!ids(cur.orcamentos).has(id)); if(orcDel.length) await must("exclusão de orçamentos",supabase.from("orcamentos").delete().in("id",orcDel));
+  const orcDel=[...ids(old.orcamentos)].filter(id=>!ids(cur.orcamentos).has(id)); if(orcDel.length){ const hdel=cur.historico.filter(h=>h.orcamentoId && orcDel.includes(h.orcamentoId)).map(h=>h.id); if(hdel.length) await must("exclusão de histórico de orçamentos",supabase.from("historico_pedidos").delete().in("id",hdel)); await must("exclusão de orçamentos",supabase.from("orcamentos").delete().in("id",orcDel)); }
 
   const pedRows=cur.pedidos.map(p=>({id:p.id,numero:p.numero,cliente_id:p.clienteId||null,data:p.data,data_entrega:p.entrega||null,status:p.status,valor_total:p.total,observacoes:p.observacao||null,entregue_em:p.entregueEm||null}));
   await must("pedidos",supabase.from("pedidos").upsert(pedRows,{onConflict:"id"}));
   const oldPi=old.pedidos.flatMap(p=>p.itens.map(i=>i.id)); const curPi=cur.pedidos.flatMap(p=>p.itens.map(i=>i.id)); const piDel=oldPi.filter(id=>!new Set(curPi).has(id)); if(piDel.length) await must("exclusão de itens de pedido",supabase.from("pedido_itens").delete().in("id",piDel));
   const piRows=cur.pedidos.flatMap(p=>p.itens.map(i=>({id:i.id,pedido_id:p.id,produto_id:i.produtoId||null,descricao:i.descricao,categoria:"produto",quantidade:i.quantidade,custo_unitario:i.valor,custo_total:i.quantidade*i.valor,quantidade_produzida:0,status_producao:"aguardando"}))); 
   await must("itens de pedido",supabase.from("pedido_itens").upsert(piRows,{onConflict:"id"}));
-  const pedDel=[...ids(old.pedidos)].filter(id=>!ids(cur.pedidos).has(id)); if(pedDel.length) await must("exclusão de pedidos",supabase.from("pedidos").delete().in("id",pedDel));
+  const pedDel=[...ids(old.pedidos)].filter(id=>!ids(cur.pedidos).has(id)); if(pedDel.length){ const hdel=cur.historico.filter(h=>h.pedidoId && pedDel.includes(h.pedidoId)).map(h=>h.id); if(hdel.length) await must("exclusão de histórico de pedidos",supabase.from("historico_pedidos").delete().in("id",hdel)); await must("exclusão de pedidos",supabase.from("pedidos").delete().in("id",pedDel)); }
 
   const payRows=cur.pagamentos.map(p=>({id:p.id,pedido_id:p.pedidoId,valor:p.valor,data:p.data,forma:p.forma||null,observacao:p.observacao||null})); await must("pagamentos",supabase.from("pagamentos").upsert(payRows,{onConflict:"id"}));
   const payDel=[...ids(old.pagamentos)].filter(id=>!ids(cur.pagamentos).has(id)); if(payDel.length) await must("exclusão de pagamentos",supabase.from("pagamentos").delete().in("id",payDel));
+
+  const histRows=cur.historico.map(h=>({id:h.id,pedido_id:h.pedidoId||null,orcamento_id:h.orcamentoId||null,evento:h.evento,detalhe:h.detalhe||null}));
+  await must("histórico",supabase.from("historico_pedidos").upsert(histRows,{onConflict:"id"}));
+  const histDel=[...ids(old.historico)].filter(id=>!ids(cur.historico).has(id)); if(histDel.length) await must("exclusão de histórico",supabase.from("historico_pedidos").delete().in("id",histDel));
 
   const movRows=cur.movimentos.map(m=>({id:m.id,material_id:m.produtoId,tipo:m.tipo,quantidade:m.quantidade,observacao:m.observacao||null})); await must("movimentações de estoque",supabase.from("movimentacoes_estoque").upsert(movRows,{onConflict:"id"}));
   const movDel=[...ids(old.movimentos)].filter(id=>!ids(cur.movimentos).has(id)); if(movDel.length) await must("exclusão de movimentações",supabase.from("movimentacoes_estoque").delete().in("id",movDel));
