@@ -1,48 +1,41 @@
-# Brasa Fluxo — versão pronta para uso local
+# Planejamento Lumme
 
-Sistema de gestão de ateliê com dados salvos no próprio navegador (localStorage). Não exige Supabase, banco externo ou configuração de servidor para começar a usar.
+Sistema de gestão de ateliê conectado ao Supabase/Lovable Cloud.
 
-## O que já está funcionando
+## Dados e login
 
-- Dashboard com indicadores
-- Clientes
-- Produtos, preços, custos e estoque
-- Entradas e saídas de estoque
-- Alertas de estoque mínimo
-- Orçamentos com vários itens
-- Conversão de orçamento em pedido
-- Pedidos com status e data de entrega
-- Quadro de produção
-- Registro de pagamento e saldo a receber
-- Calendário de entregas
-- Busca global
-- Configurações do ateliê
-- Persistência automática no navegador
-- Layout responsivo para computador e celular
+- Login feito pelo Supabase Auth.
+- Sessão permanece ativa após atualizar a página (F5), conforme a sessão do Supabase.
+- Clientes, produtos, estoque, orçamentos, pedidos, pagamentos e configurações são gravados no banco do Supabase.
+- O `localStorage` é usado somente pelo mecanismo de sessão/preview do Supabase quando necessário; ele não é usado como banco da aplicação.
+- Se uma gravação falhar, o sistema mostra o erro em vez de fingir que os dados foram salvos.
 
 ## Como executar
 
-Requer Node.js 20+ ou Bun.
+Requer Node.js 20+.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Depois abra o endereço mostrado pelo Vite (normalmente `http://localhost:5173`).
+Depois abra o endereço mostrado pelo Vite, normalmente `http://localhost:5173`.
 
 ### Windows
 
-Também é possível executar:
+Execute:
 
 ```text
-INICIAR-BRASA-FLUXO.bat
+INICIAR-PLANEJAMENTO-LUMME.bat
 ```
 
-O arquivo instala as dependências e inicia o sistema.
+## Importante
 
-## Importante sobre os dados
+Este projeto deve continuar conectado ao mesmo projeto Supabase/Lovable que já contém as tabelas do sistema. Não apague nem recrie o banco para usar este código.
 
-Esta versão foi preparada para funcionar imediatamente sem serviço externo. Os dados ficam no navegador do computador em que o sistema é usado. Para usar em vários computadores ou fazer backup centralizado, será necessário conectar um banco/Supabase em uma etapa posterior.
+As variáveis necessárias são:
 
-Para apagar os dados locais e voltar ao estado inicial, use **Configurações → Apagar dados e voltar ao exemplo**.
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+
+No Lovable Cloud, a conexão do Supabase normalmente já fornece essas variáveis.
