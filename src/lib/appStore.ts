@@ -22,7 +22,7 @@ const listeners = new Set<()=>void>();
 
 function emit(){ listeners.forEach(fn=>fn()); }
 function clone<T>(v:T):T { return structuredClone(v); }
-export function uid(prefix="id"){ return `${prefix}_${crypto.randomUUID()}`; }
+export function uid(_prefix="id"){ return crypto.randomUUID(); }
 export function getData(){ return cache; }
 export function nextNumber(list:{numero:number}[], start=1){ return list.reduce((m,x)=>Math.max(m,x.numero),start-1)+1; }
 export function money(n:number){ return n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
