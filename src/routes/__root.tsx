@@ -78,7 +78,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Ateliê — Gestão de pedidos artesanais" },
+      { title: "Planejamento Lumme — Gestão de pedidos artesanais" },
       {
         name: "description",
         content:
