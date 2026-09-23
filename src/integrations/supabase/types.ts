@@ -749,6 +749,7 @@ export type Database = {
           ficha_tecnica: string | null
           id: string
           nome: string
+          preco_venda: number
         }
         Insert: {
           ativo?: boolean
@@ -759,6 +760,7 @@ export type Database = {
           ficha_tecnica?: string | null
           id?: string
           nome: string
+          preco_venda?: number
         }
         Update: {
           ativo?: boolean
@@ -769,6 +771,7 @@ export type Database = {
           ficha_tecnica?: string | null
           id?: string
           nome?: string
+          preco_venda?: number
         }
         Relationships: []
       }
